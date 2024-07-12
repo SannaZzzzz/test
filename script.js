@@ -1,7 +1,8 @@
-const SUPABASE_URL = '您的Supabase项目URL';
-const SUPABASE_ANON_KEY = '您的Supabase匿名密钥';
+import { createClient } from '@supabase/supabase-js'
+const supabaseUrl = 'https://kqhoawwqcdpbewfhjzfk.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let isAdmin = false;
 
