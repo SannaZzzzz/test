@@ -1,0 +1,38 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#messageBoard {
+    margin-top: 20px;
+}
+
+#messages {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#messageForm {
+    display: flex;
+    flex-direction: column;
+}
+
+#messageInput {
+    margin-bottom: 10px;
+    padding: 5px;
+}
+
+button {
+    cursor: pointer;
+}
