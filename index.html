@@ -1,27 +1,259 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>个人网页留言板</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>英英和我的小屋</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #1f4b99; /* 代尔夫特蓝 */
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            position: relative;
+        }
+        .admin-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+        }
+        .work-records, .comment-board {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .work-record {
+            margin-bottom: 10px;
+            position: relative;
+        }
+        footer {
+            background-color: #1f4b99;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+        .comment {
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .comment-form textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        .comment-form button, .work-record-form button {
+            background-color: #1f4b99;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .work-record-form input, .work-record-form textarea {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .delete-button, .edit-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: none;
+        }
+        .edit-button {
+            right: 60px;
+            background-color: orange;
+        }
+        .delete-button.admin, .edit-button.admin {
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <header>
-        <h1>欢迎来到我的个人网页</h1>
-        <button id="adminLogin">管理员登录</button>
+        <h1>英英和我的小屋</h1>
+        <div class="admin-controls">
+            <input type="password" id="admin-password" placeholder="输入管理员密码">
+            <button onclick="toggleAdmin()">切换管理员模式</button>
+        </div>
     </header>
-    <main>
-        <section id="messageBoard">
+    <div class="container">
+        <div class="work-records" id="work-records">
+            <h2>英英の宝宝的工作记录</h2>
+            <div id="work-record-list">
+                <!-- 在此处显示工作记录 -->
+            </div>
+            <div class="work-record-form" id="work-record-form" style="display:none;">
+                <input type="text" id="work-date" placeholder="日期 (YYYY-MM-DD)">
+                <textarea id="work-content" placeholder="工作内容"></textarea>
+                <button onclick="addWorkRecord()">添加工作记录</button>
+            </div>
+        </div>
+        <div class="comment-board" id="comment-board">
             <h2>留言板</h2>
-            <div id="messages"></div>
-            <form id="messageForm">
-                <textarea id="messageInput" placeholder="请留言..." required></textarea>
-                <button type="submit">发送</button>
-            </form>
-        </section>
-    </main>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="script.js"></script>
+            <div id="comments">
+                <!-- 在此处显示留言 -->
+            </div>
+            <div class="comment-form">
+                <textarea id="comment-input" placeholder="留下你的留言"></textarea>
+                <button onclick="addComment()">提交留言</button>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2024 英英和我的小屋</p>
+    </footer>
+
+    <script>
+        const adminPassword = '19941010'; // 替换为你自己的管理员密码
+        let isAdmin = false;
+
+        function toggleAdmin() {
+            const passwordInput = document.getElementById('admin-password');
+            if (passwordInput.value === adminPassword) {
+                isAdmin = true;
+                document.getElementById('work-record-form').style.display = 'block';
+                document.querySelectorAll('.delete-button, .edit-button').forEach(btn => btn.classList.add('admin'));
+                alert('已切换为管理员模式');
+            } else {
+                isAdmin = false;
+                document.getElementById('work-record-form').style.display = 'none';
+                document.querySelectorAll('.delete-button, .edit-button').forEach(btn => btn.classList.remove('admin'));
+                alert('密码错误');
+            }
+        }
+
+        // 工作记录数据
+        function getWorkRecords() {
+            const records = localStorage.getItem('workRecords');
+            return records ? JSON.parse(records) : [];
+        }
+
+        function saveWorkRecords(records) {
+            localStorage.setItem('workRecords', JSON.stringify(records));
+        }
+
+        function displayWorkRecords() {
+            const records = getWorkRecords();
+            const workRecordList = document.getElementById('work-record-list');
+            workRecordList.innerHTML = '';
+            records.forEach((record, index) => {
+                const recordElement = document.createElement('div');
+                recordElement.className = 'work-record';
+                recordElement.innerHTML = `<strong>${record.date}:</strong> ${record.content}`;
+                const editButton = document.createElement('button');
+                editButton.textContent = '编辑';
+                editButton.className = 'edit-button';
+                editButton.onclick = () => editWorkRecord(index);
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '删除';
+                deleteButton.className = 'delete-button';
+                deleteButton.onclick = () => deleteWorkRecord(index);
+                recordElement.appendChild(editButton);
+                recordElement.appendChild(deleteButton);
+                workRecordList.appendChild(recordElement);
+            });
+        }
+
+        function addWorkRecord() {
+            const dateInput = document.getElementById('work-date');
+            const contentInput = document.getElementById('work-content');
+            const newRecord = { date: dateInput.value, content: contentInput.value };
+            const records = getWorkRecords();
+            records.push(newRecord);
+            saveWorkRecords(records);
+            displayWorkRecords();
+            dateInput.value = '';
+            contentInput.value = '';
+        }
+
+        function editWorkRecord(index) {
+            const records = getWorkRecords();
+            const record = records[index];
+            const dateInput = document.getElementById('work-date');
+            const contentInput = document.getElementById('work-content');
+            dateInput.value = record.date;
+            contentInput.value = record.content;
+            deleteWorkRecord(index); // 删除原有记录，等待重新添加
+        }
+
+        function deleteWorkRecord(index) {
+            const records = getWorkRecords();
+            records.splice(index, 1);
+            saveWorkRecords(records);
+            displayWorkRecords();
+        }
+
+        // 留言功能
+        function getComments() {
+            const comments = localStorage.getItem('comments');
+            return comments ? JSON.parse(comments) : [];
+        }
+
+        function saveComments(comments) {
+            localStorage.setItem('comments', JSON.stringify(comments));
+        }
+
+        function displayComments() {
+            const comments = getComments();
+            const commentsContainer = document.getElementById('comments');
+            commentsContainer.innerHTML = '';
+            comments.forEach((comment, index) => {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment';
+                commentElement.textContent = comment;
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '删除';
+                deleteButton.className = 'delete-button';
+                deleteButton.onclick = () => deleteComment(index);
+                commentElement.appendChild(deleteButton);
+                commentsContainer.appendChild(commentElement);
+            });
+        }
+
+        function addComment() {
+            const commentInput = document.getElementById('comment-input');
+            const commentText = commentInput.value;
+            if (commentText) {
+                const comments = getComments();
+                comments.push(commentText);
+                saveComments(comments);
+                displayComments();
+                commentInput.value = '';
+            }
+        }
+
+        function deleteComment(index) {
+            const comments = getComments();
+            comments.splice(index, 1);
+            saveComments(comments);
+            displayComments();
+        }
+
+        // 初始化显示工作记录和留言
+        displayWorkRecords();
+        displayComments();
+    </script>
 </body>
 </html>
