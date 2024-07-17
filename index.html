@@ -290,8 +290,10 @@
         }
 
         // 初始化显示工作记录和留言
-        displayWorkRecords();
-        displayComments();
+        document.addEventListener('DOMContentLoaded', function() {
+            displayWorkRecords();
+            displayComments();
+        });
     </script>
 </body>
 </html>
