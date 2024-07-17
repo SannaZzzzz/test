@@ -125,7 +125,14 @@
         <p>&copy; 2024 英英和我的小屋</p>
     </footer>
 
+    <!-- 引入Supabase库 -->
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
     <script>
+        // Supabase 配置
+        const supabaseUrl = 'https://kqhoawwqcdpbewfhjzfk.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxaG9hd3dxY2RwYmV3ZmhqemZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjA2OTAzMTgsImV4cCI6MjAzNjI2NjMxOH0.R0eV4Y22QSa4C5ox70RvntAuGD-Z5Yf2CS065etZuuw'; // 替换为你的anonKey
+        const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         const adminPassword = '19941010'; // 替换为你自己的管理员密码
         let isAdmin = false;
 
@@ -136,6 +143,7 @@
                 document.getElementById('work-record-form').style.display = 'block';
                 document.querySelectorAll('.delete-button, .edit-button').forEach(btn => btn.classList.add('admin'));
                 alert('已切换为管理员模式');
+                passwordInput.value = '';
             } else {
                 isAdmin = false;
                 document.getElementById('work-record-form').style.display = 'none';
@@ -144,110 +152,140 @@
             }
         }
 
-        // 工作记录数据
-        function getWorkRecords() {
-            const records = localStorage.getItem('workRecords');
-            return records ? JSON.parse(records) : [];
-        }
-
-        function saveWorkRecords(records) {
-            localStorage.setItem('workRecords', JSON.stringify(records));
-        }
-
-        function displayWorkRecords() {
-            const records = getWorkRecords();
+        async function displayWorkRecords() {
+            const { data: records, error } = await supabase
+                .from('work_records')
+                .select('*');
+            if (error) {
+                console.error('获取工作记录失败：', error);
+                return;
+            }
             const workRecordList = document.getElementById('work-record-list');
             workRecordList.innerHTML = '';
-            records.forEach((record, index) => {
+            records.forEach((record) => {
                 const recordElement = document.createElement('div');
                 recordElement.className = 'work-record';
                 recordElement.innerHTML = `<strong>${record.date}:</strong> ${record.content}`;
-                const editButton = document.createElement('button');
-                editButton.textContent = '编辑';
-                editButton.className = 'edit-button';
-                editButton.onclick = () => editWorkRecord(index);
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = '删除';
-                deleteButton.className = 'delete-button';
-                deleteButton.onclick = () => deleteWorkRecord(index);
-                recordElement.appendChild(editButton);
-                recordElement.appendChild(deleteButton);
+                if (isAdmin) {
+                    const editButton = document.createElement('button');
+                    editButton.textContent = '编辑';
+                    editButton.className = 'edit-button admin';
+                    editButton.onclick = () => editWorkRecord(record.id);
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = '删除';
+                    deleteButton.className = 'delete-button admin';
+                    deleteButton.onclick = () => deleteWorkRecord(record.id);
+                    recordElement.appendChild(editButton);
+                    recordElement.appendChild(deleteButton);
+                }
                 workRecordList.appendChild(recordElement);
             });
         }
 
-        function addWorkRecord() {
+        async function addWorkRecord() {
             const dateInput = document.getElementById('work-date');
             const contentInput = document.getElementById('work-content');
-            const newRecord = { date: dateInput.value, content: contentInput.value };
-            const records = getWorkRecords();
-            records.push(newRecord);
-            saveWorkRecords(records);
+            if (!dateInput.value || !contentInput.value) {
+                alert('日期和工作内容不能为空');
+                return;
+            }
+            const { error } = await supabase
+                .from('work_records')
+                .insert([
+                    { date: dateInput.value, content: contentInput.value }
+                ]);
+            if (error) {
+                console.error('添加工作记录失败：', error);
+                return;
+            }
             displayWorkRecords();
             dateInput.value = '';
             contentInput.value = '';
         }
 
-        function editWorkRecord(index) {
-            const records = getWorkRecords();
-            const record = records[index];
+        async function editWorkRecord(id) {
+            const { data: record, error } = await supabase
+                .from('work_records')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) {
+                console.error('编辑工作记录失败：', error);
+                return;
+            }
             const dateInput = document.getElementById('work-date');
             const contentInput = document.getElementById('work-content');
             dateInput.value = record.date;
             contentInput.value = record.content;
-            deleteWorkRecord(index); // 删除原有记录，等待重新添加
+            deleteWorkRecord(id); // 删除原有记录，等待重新添加
         }
 
-        function deleteWorkRecord(index) {
-            const records = getWorkRecords();
-            records.splice(index, 1);
-            saveWorkRecords(records);
+        async function deleteWorkRecord(id) {
+            const { error } = await supabase
+                .from('work_records')
+                .delete()
+                .eq('id', id);
+            if (error) {
+                console.error('删除工作记录失败：', error);
+                return;
+            }
             displayWorkRecords();
         }
 
-        // 留言功能
-        function getComments() {
-            const comments = localStorage.getItem('comments');
-            return comments ? JSON.parse(comments) : [];
-        }
-
-        function saveComments(comments) {
-            localStorage.setItem('comments', JSON.stringify(comments));
-        }
-
-        function displayComments() {
-            const comments = getComments();
+        async function displayComments() {
+            const { data: comments, error } = await supabase
+                .from('comments')
+                .select('*');
+            if (error) {
+                console.error('获取留言失败：', error);
+                return;
+            }
             const commentsContainer = document.getElementById('comments');
             commentsContainer.innerHTML = '';
-            comments.forEach((comment, index) => {
+            comments.forEach((comment) => {
                 const commentElement = document.createElement('div');
                 commentElement.className = 'comment';
-                commentElement.textContent = comment;
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = '删除';
-                deleteButton.className = 'delete-button';
-                deleteButton.onclick = () => deleteComment(index);
-                commentElement.appendChild(deleteButton);
+                commentElement.textContent = comment.content;
+                if (isAdmin) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = '删除';
+                    deleteButton.className = 'delete-button admin';
+                    deleteButton.onclick = () => deleteComment(comment.id);
+                    commentElement.appendChild(deleteButton);
+                }
                 commentsContainer.appendChild(commentElement);
             });
         }
 
-        function addComment() {
+        async function addComment() {
             const commentInput = document.getElementById('comment-input');
             const commentText = commentInput.value;
-            if (commentText) {
-                const comments = getComments();
-                comments.push(commentText);
-                saveComments(comments);
-                displayComments();
-                commentInput.value = '';
+            if (!commentText) {
+                alert('留言不能为空');
+                return;
             }
+            const { error } = await supabase
+                .from('comments')
+                .insert([
+                    { content: commentText }
+                ]);
+            if (error) {
+                console.error('添加留言失败：', error);
+                return;
+            }
+            displayComments();
+            commentInput.value = '';
         }
 
-        function deleteComment(index) {
-            const comments = getComments();
-            comments.splice(index, 1);
-            saveComments(comments);
+        async function deleteComment(id) {
+            const { error } = await supabase
+                .from('comments')
+                .delete()
+                .eq('id', id);
+            if (error) {
+                console.error('删除留言失败：', error);
+                return;
+            }
             displayComments();
         }
 
